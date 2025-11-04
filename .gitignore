@@ -25,4 +25,4 @@ Thumbs.db
 # Logs
 *.log
 
---init--.py
+__init__.py
