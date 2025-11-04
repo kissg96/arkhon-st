@@ -1,0 +1,12 @@
+{
+    "display_name": "Arkon Memory",
+    "loading_order": 1,
+    "requires": [],
+    "optional": [],
+    "dependencies": [],
+    "js": "arkhon.js",
+    "author": "kissg96",
+    "version": "1.0.0",
+    "homePage": [],
+    "auto_update": false
+}
