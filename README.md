@@ -1,6 +1,6 @@
 # Arkhon Memory - Persistent Character Memory for SillyTavern
 
-> **🧪 Currently in Beta** | Functional but under active development. [Join beta program for Pro features →](https://arkhon.app)
+> **Currently in Beta** | Functional but under active development. [Join beta program for Pro features →](https://arkhon.app)
 
 **Smart, local, permanent memory for your characters.** No more repeating yourself. No cloud uploads. Just context that actually sticks.
 
@@ -10,10 +10,10 @@
 
 **The free tier is fully functional and always will be.** However, Arkhon Memory is currently in beta testing:
 
-- ✅ **Free tier works now** - Local FAISS-based memory, fully functional
-- 🧪 **Expect updates** - Active development based on user feedback
-- 🐛 **Report bugs** - Help us improve by opening GitHub issues
-- 🚀 **Pro tier in development** - Advanced scoring features coming soon
+- **Free tier works now** - Local FAISS-based memory, fully functional
+- **Expect updates** - Active development based on user feedback
+- **Report bugs** - Help us improve by opening GitHub issues
+- **Pro tier in development** - Advanced scoring features coming soon
 
 **Not ready for production use?** That's okay - bookmark this and come back after public launch (Dec 2024).
 
@@ -25,15 +25,15 @@ Your characters forget. You tell them something important, switch chats, come ba
 
 **Arkhon Memory fixes this.**
 
-- 💾 **Persistent** - Memories survive restarts, chat switches, even character card updates
-- 🧠 **Smart recall** - Vector search finds relevant memories, not just exact matches
-- 🔒 **100% local** - Nothing leaves your computer. Ever.
-- 🎯 **Automatic filtering** - Only high-quality, relevant memories make it to your LLM
-- ⚙️ **Zero config required** - Works out of the box, customize if you want
+- **Persistent** - Memories survive restarts, chat switches, even character card updates
+- **Smart recall** - Vector search finds relevant memories, not just exact matches
+- **100% local** - Nothing leaves your computer. Ever.
+- **Automatic filtering** - Only high-quality, relevant memories make it to your LLM
+- **Zero config required** - Works out of the box, customize if you want
 
 ---
 
-## **🚀 Quick Start**
+## **Quick Start**
 
 > **Beta Note:** These instructions work for the free tier. If you encounter issues, please open a GitHub issue with details!
 
@@ -92,14 +92,14 @@ SillyTavern/data/default-user/extensions/arkhon-st/arkhon_data/
 
 ---
 
-## **🎯 Pro Tier - Early Adopter Program**
+## **Pro Tier - Early Adopter Program**
 
 The free tier (what you're using now) is **fully functional and will always be free.**
 
 We're building a **Pro tier** with:
-- ⚡ **Advanced scoring algorithm** - Even smarter memory prioritization
-- 🔥 **Server-powered processing** - Server-grade memory analysis
-- 🎨 **Priority features** - Early access to new capabilities
+- **Advanced recalling algorithm** - Even smarter memory prioritization
+- **Server-powered processing** - Server-grade memory analysis
+- **Priority features** - Early access to new capabilities
 
 **Early adopter pricing:** 50% off launch price, **locked in forever** for the first 100 users.
 
