@@ -6,14 +6,12 @@ else { window.__arkhon_loaded = true;
 
 console.log("Arkhon extension loaded!");
 
-// NAS base for identity (/whoami). Allow override via window or localStorage; strip trailing slash.
 const NAS_BASE = (
   (window.ARKHON_NAS_BASE) ||
   localStorage.getItem("arkhon_nas_base") ||
   "https://arkhon.app"
 ).replace(/\/+$/, "");
 
-// Local memory server (user’s own rig/notebook)
 const MEMORY_BASE = (
   (window.ARKHON_MEMORY_BASE) ||
   localStorage.getItem("arkhon_memory_base") ||
@@ -25,8 +23,6 @@ const ARKHON_VERSION = "v0.9-beta";
 const ARKHON_DEBUG = new URLSearchParams(location.search).get("arkhon_debug") === "1";
 const d = (...a) => ARKHON_DEBUG && console.log("[Arkhon]", ...a);
 console.log(`[Arkhon] ${ARKHON_VERSION} loaded`);
-
-/* ===== Arkhon → inject memory into LLM payload (messages OR prompt) ===== */
 
 // Non-echoable header the model should not repeat
 const HEADER = '[Arkhon Context — for the assistant’s private use only. ' +
@@ -46,7 +42,7 @@ function insertAfterSystemPrelude(fullPrompt, block) {
       return fullPrompt.slice(0, end) + block + fullPrompt.slice(end);
     }
   }
-  return block + fullPrompt; // fallback: prepend
+  return block + fullPrompt;
 }
 
 (() => {
@@ -59,33 +55,25 @@ function insertAfterSystemPrelude(fullPrompt, block) {
   const origFetch = window.fetch;
   window.fetch = async function(url, opts) {
     try {
-      // [PATCH] ——— begin ———
       const u = (typeof url === 'string') ? url : (url && url.url) || '';
 
-      // If calling the local memory server, forward FE token and bypass injection.
       if ((typeof url === 'string' ? url : (url && url.url) || '').startsWith(MEMORY_BASE)) {
         const t = localStorage.getItem("arkhon_user_token") || "";
         if (t) {
           if (opts && opts.headers && typeof opts.headers.set === "function") {
-            // make sure the name is correct:
             opts.headers.set("Authorization", "Bearer " + t);
           } else {
-            // when opts is undefined, create one AND pass it through
             opts = Object.assign({}, opts || {}, {
               headers: Object.assign({}, (opts && opts.headers) || {}, {
                 Authorization: "Bearer " + t
               })
             });
           }
-          // optional debug
           console.debug("[Arkhon] forwarded FE token", (typeof url === 'string' ? url : url.url));
         }
-        // IMPORTANT: call with the modified opts (not ...apply(this, arguments))
         return origFetch(url, opts);
       }
 
-
-      // NAS calls: attach FE token if present (safe before we enforce it server-side)
       if (u.startsWith(NAS_BASE)) {
         const t = localStorage.getItem("arkhon_user_token") || "";
         if (t) {
@@ -100,7 +88,6 @@ function insertAfterSystemPrelude(fullPrompt, block) {
           }
           console.debug("[Arkhon] forwarded FE token to NAS");
         }
-        // IMPORTANT: use modified opts so the header actually goes out
         return origFetch(url, opts);
       }
 
@@ -110,7 +97,6 @@ function insertAfterSystemPrelude(fullPrompt, block) {
           return origFetch.apply(this, arguments);
         }
 
-        // Fresh recalled lines?
         const fresh = typeof window.__arkhon_memory_ttl === 'number' && Date.now() < window.__arkhon_memory_ttl;
         const lines = fresh ? (window.__arkhon_memory || []).filter(Boolean) : [];
         if (lines.length > 0) {
@@ -181,15 +167,12 @@ let turnsSinceLastSave = 0;
  const __arkhonUserReady = ensureUserId().then(id => (ARKHON_USER_ID = id));
 
 async function ensureUserId() {
-  // 1) local cache fast-path
   let uid = localStorage.getItem("arkhon_user_id");
   if (uid) {
-    // If we’re on a temp alias, always re-show the banner
     if (localStorage.getItem("arkhon_temp_alias") === "1") showTempBanner();
     return uid;
   }
 
-  // 2) alias bootstrap
   let alias = localStorage.getItem("arkhon_alias");
   if (!alias) {
     injectAliasModal();
@@ -203,26 +186,22 @@ async function ensureUserId() {
         const tokenInput = document.getElementById("arkhon-token-input");
         const token = (tokenInput?.value || "").trim();
 
-        // Validate alias
         if (!/^[A-Za-z0-9_]{3,32}$/.test(val)) {
           errorBox.textContent = "Alias must be 3–32 chars, only letters/numbers/underscores.";
           errorBox.style.display = "block";
           return;
         }
 
-        // Validate token format (optional but helpful for beta users)
         if (token && !token.startsWith("tkn_")) {
           errorBox.textContent = "Invalid token format. Should start with 'tkn_'";
           errorBox.style.display = "block";
           return;
         }
 
-        // Save alias
         alias = val;
         localStorage.setItem("arkhon_alias", alias);
         localStorage.removeItem("arkhon_temp_alias");
 
-        // Save token if provided
         if (token) {
           localStorage.setItem("arkhon_user_token", token);
           console.log("[Arkhon] ✅ Token saved!");
@@ -244,14 +223,12 @@ async function ensureUserId() {
     });
   }
 
-  // 3) NAS identity issuance
   return fetchUserId(alias, localStorage.getItem("arkhon_temp_alias") === "1");
 }
 
 async function fetchUserId(alias, isTemp = false) {
   try {
     const res = await fetch(`${NAS_BASE}/whoami?alias=${encodeURIComponent(alias)}`, {
-      // Some NAS deployments don’t need auth — keep our default headers but tolerate 401/403 fallbacks below
       headers: authHeaders()
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -266,7 +243,6 @@ async function fetchUserId(alias, isTemp = false) {
     console.warn("[Arkhon] whoami failed; falling back to local UUID", err);
   }
 
-  // 4) last-resort local UUID
   const uid = generateUUID();
   localStorage.setItem("arkhon_user_id", uid);
   if (isTemp) showTempBanner();
@@ -274,7 +250,7 @@ async function fetchUserId(alias, isTemp = false) {
 }
 
 function injectAliasModal() {
-  if (document.getElementById("arkhon-alias-modal")) return; // don’t double inject
+  if (document.getElementById("arkhon-alias-modal")) return;
 
   const modal = document.createElement("div");
   modal.id = "arkhon-alias-modal";
@@ -307,7 +283,6 @@ function injectAliasModal() {
   `;
   document.body.appendChild(modal);
 
-  // Inject CSS if not already present
   if (!document.getElementById("arkhon-alias-style")) {
     const style = document.createElement("style");
     style.id = "arkhon-alias-style";
@@ -425,7 +400,6 @@ function generateUUID() {
 function cleanTextForMemory(s = "", { gentle = false } = {}) {
   let out = String(s);
 
-  // A) remove exact prelude only if it’s the *prefix*
   if (window.__arkhon_lastPrelude) {
     const prelude = String(window.__arkhon_lastPrelude).trim();
     if (prelude) {
@@ -435,15 +409,12 @@ function cleanTextForMemory(s = "", { gentle = false } = {}) {
     }
   }
 
-  // B) normalize tag variants
   out = out.replace(/\[\s*\[\s*memory\s+context\s+start\s*\]\s*\]/gi, "[[MEMORY CONTEXT START]]")
            .replace(/\[\s*\[\s*memory\s+context\s+end\s*\]\s*\]/gi,   "[[MEMORY CONTEXT END]]");
 
-  // remove a *single leading* tagged block only (don’t scrub mid-message)
   out = out.replace(/^(\s*\[\[MEMORY CONTEXT START\]\][\s\S]*?\[\[MEMORY CONTEXT END\]\]\s*)/, "");
 
   if (!gentle) {
-    // C) aggressive header strip (keep as opt-in)
     out = out.replace(
       /^(?:\s*(?:-\s.*|\s{2,}.*)(?:\r?\n|$)){1,40}(?=(?:\s*\r?\n){1,}|You:|[A-Z][A-Za-z0-9_]{1,24}:\s|\*)/m,
       ""
@@ -474,7 +445,6 @@ function showToast(message, opts = {}) {
   }, opts.duration || 1900);
 }
 
-// ultra-light toast; non-blocking
 function toast(msg, kind="info") {
   const el = document.createElement("div");
   el.className = `arkhon-toast arkhon-${kind}`;
@@ -620,7 +590,6 @@ function memoriesToPrelude(hits) {
 }
 
 async function injectMemoriesBeforeSend(originalText, characterName) {
-  // If the user already pasted a prelude, don’t recall/inject again.
   if (/\[\[\s*MEMORY\s+CONTEXT\s+START\s*\]\]/i.test(originalText)) return originalText;
 
   try {
@@ -628,7 +597,6 @@ async function injectMemoriesBeforeSend(originalText, characterName) {
     const hits = await recallMemories(characterName, originalText, 5);
     const dt = Math.round(performance.now() - t0);
 
-    // 🔍 Debug raw recall hits
     console.log("[Arkhon DEBUG] Raw recall hits:", hits);
 
     d(`[Arkhon] Recalled ${hits?.length || 0} memories for "${characterName}" in ${dt}ms`);
@@ -653,7 +621,6 @@ async function injectMemoriesBeforeSend(originalText, characterName) {
 
     const prelude = memoriesToPrelude(hits);
 
-    // 🔍 Debug final prelude string
     console.log("[Arkhon DEBUG] Final prelude:", prelude);
 
     window.__arkhon_lastPrelude = prelude;
@@ -680,11 +647,7 @@ async function prepareMemoriesForContext(userText, characterName) {
     const hits = await recallMemories(characterName, userText, 5);
     const lines = hitsToLines(hits);
     window.__arkhon_memory = lines;
-
-    // ✅ TTL (freshness window for the next send)
     window.__arkhon_memory_ttl = Date.now() + 8000; // 8s
-
-    // keep for cleaners; but since we no longer paste, clear prelude
     window.__arkhon_lastPrelude = '';
     console.log('[Arkhon] prepared', lines.length, 'memory lines for context');
   } catch (e) {
@@ -706,16 +669,12 @@ function resetCountersAfterSave() {
 function buildMemoryPayload({ userText, assistantText, char_name, important }) {
   const rawUser = String(userText || "");
   const rawAsst = String(assistantText || "");
-
-  // gentle clean for saves (don’t over-trim bullets)
   const user = cleanTextForMemory(rawUser, { gentle: true });
   const assistant = cleanTextForMemory(rawAsst, { gentle: true });
 
-  // combine; if cleaning produced empty, fall back to raw
   let combined = `${user}\n${assistant}`.trim();
   if (!combined) combined = `${rawUser}\n${rawAsst}`.trim();
 
-  // final guard: if still empty, abort early
   if (!combined) {
     throw new Error("Empty memory after cleaning; not saving.");
   }
@@ -824,7 +783,6 @@ function setupAutoSave() {
   const observer = new MutationObserver((muts) => {
     if (autoSaveTurns === "off") return;
 
-    // count only when a *new assistant bubble* is added
     let assistantAdded = false;
     for (const m of muts) {
       m.addedNodes?.forEach(n => {
@@ -839,18 +797,15 @@ function setupAutoSave() {
     }
     if (!assistantAdded) return;
 
-    // one new exchange completed
     turnsSinceLastSave++;
     updateAutoSaveStatus();
 
     turnCounter++;
     if (turnCounter % autoSaveTurns !== 0) return;
 
-    // debounce duplicate bursts
     if (__autosaving || (Date.now() - __lastAutoSaveTs) < 300) return;
     __autosaving = true;
 
-    // snapshot the last N exchanges
     const history   = getRecentChatMessages(autoSaveTurns * 4);
     const exchanges = getLastExchanges(history, autoSaveTurns);
 
@@ -887,7 +842,6 @@ function setupAutoSave() {
 
   observer.observe(chatNode, { childList: true, subtree: true });
 }
-
 
 /* ===== Send Intercept (hardened) ===== */
 let input = null, sendButton = null;
@@ -930,7 +884,6 @@ function attachSendIntercept() {
       const character = getActiveCharacterName();
 
       await prepareMemoriesForContext(userMsg, character);
-      // do NOT modify the input — keep the user's text clean
       input.value = userMsg;
 
       triggerSillyTavernSend();
@@ -1114,8 +1067,6 @@ function buildInlineActionsForMessage(mesEl) {
   btnImportant.innerHTML = `${iconStar}<span>Important</span>`;
   btnImportant.setAttribute('aria-label','Save as Important');
   btnImportant.setAttribute('tabindex','0');
-
-  // Manual saves should be important=true per spec
   btnSave.addEventListener('click', async (e) => {
     e.stopPropagation();
     await storeMemoryFromBubble(mesEl, { important: true });
@@ -1159,7 +1110,6 @@ function mountInlineActions() {
   });
   __inlineObs.observe(chat, { childList: true, subtree: true });
 
-  // periodic self-heal
   setInterval(() => {
     Array.from(document.querySelectorAll('#chat .mes')).forEach(buildInlineActionsForMessage);
   }, 2500);
