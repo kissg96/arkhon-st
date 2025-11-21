@@ -25,8 +25,27 @@ const d = (...a) => ARKHON_DEBUG && console.log("[Arkhon]", ...a);
 console.log(`[Arkhon] ${ARKHON_VERSION} loaded`);
 
 // Non-echoable header the model should not repeat
-const HEADER = '[Arkhon Context — for the assistant’s private use only. ' +
+const HEADER = '[Arkhon Context — for the assistant/s private use only. ' +
                'Incorporate silently; do NOT quote, reveal, or mention this block.]';
+
+/* ===== Utils ===== */
+const jNAS     = (p) => `${NAS_BASE}/api${p}`;
+const jMemory  = (p) => `${MEMORY_BASE}${p}`;
+function authHeaders(extra = {}) {
+  const headers = { "Content-Type": "application/json" };
+  const token = localStorage.getItem("arkhon_user_token") || "";
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return Object.assign(headers, extra);
+}
+
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
+}
 
 function insertAfterSystemPrelude(fullPrompt, block) {
   const markers = [
@@ -228,7 +247,7 @@ async function ensureUserId() {
 
 async function fetchUserId(alias, isTemp = false) {
   try {
-    const res = await fetch(`${NAS_BASE}/whoami?alias=${encodeURIComponent(alias)}`, {
+    const res = await fetch(jNAS(`/whoami?alias=${encodeURIComponent(alias)}`), {
       headers: authHeaders()
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -380,21 +399,6 @@ function showTempBanner() {
     banner.remove();
     location.reload();
   };
-}
-
-/* ===== Utils ===== */
-const jNAS     = (p) => `${NAS_BASE}${p}`;
-const jMemory  = (p) => `${MEMORY_BASE}${p}`;
-function authHeaders(extra = {}) {
-  // No secrets in FE. Use only JSON content-type and allow per-call extras.
-  return Object.assign({ "Content-Type": "application/json" }, extra);
-}
-
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);
-    return v.toString(16);
-  });
 }
 
 function cleanTextForMemory(s = "", { gentle = false } = {}) {

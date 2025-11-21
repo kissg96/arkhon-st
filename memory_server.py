@@ -19,12 +19,11 @@ logging.basicConfig(
 )
 
 # Allow SillyTavern frontend origins
-CORS(app, resources={r"/*": {"origins": [
-    "http://127.0.0.1:8000",
-    "http://localhost:8000",
-    "http://127.0.0.1",
-    "http://localhost"
-]}})
+CORS(app,
+     resources={r"/*": {"origins": "*"}},
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 API_TOKEN = os.getenv("ARKHON_API_TOKEN", "")
 NAS_SCORER_BASE = os.getenv("ARKHON_NAS_SCORER", "https://arkhon.app")
@@ -48,13 +47,21 @@ EMBEDDING_DIM = get_embedder().get_sentence_embedding_dimension()
 TOPK_CANDIDATES = 24
 FINAL_CAP = 12
 
-REQUIRE_AUTH = os.getenv("ARKHON_REQUIRE_AUTH", "1") == "1"
+REQUIRE_AUTH = os.getenv("ARKHON_REQUIRE_AUTH", "0") == "1"
 def ensure_auth():
     if not REQUIRE_AUTH:
         return
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer ") or auth.split(" ", 1)[1] != API_TOKEN:
         abort(401)
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Max-Age'] = '3600'
+    return response
 
 def ensure_user_dir(user_id: str, char_name: str) -> Path:
     safe_user = "".join(c for c in str(user_id) if c not in "\\/:*?\"<>|").strip() or "anon"
@@ -321,7 +328,16 @@ def recall_memories():
         logging.info("[RECALL] soft-fail: %s", e)
         return jsonify([]), 200
 
- 
+@app.route('/<path:path>', methods=['OPTIONS'])
+@app.route('/', methods=['OPTIONS'])
+def handle_options(path=None):
+    response = jsonify({"status": "ok"})
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Max-Age'] = '3600'
+    return response, 200
+
 @app.get("/ping")
 def ping():
     return jsonify({"status": "pong", "message": "pong"})
@@ -341,5 +357,5 @@ def ping():
 # For local default users - comment out if using gunicorn!!!
 if __name__ == "__main__":
     from waitress import serve
-    print("Starting waitress on http://0.0.0.0:9000 ...")
+    print("Welcome to CATH. Starting waitress on http://0.0.0.0:9000 ...")
     serve(app, host="0.0.0.0", port=9000)
